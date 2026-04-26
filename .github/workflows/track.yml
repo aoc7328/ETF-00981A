@@ -1,16 +1,15 @@
-name: 00981A 每日持股追蹤
+name: 00981A 瘥?餈質馱
 
 on:
   schedule:
-    # UTC 15:00 = 台灣時間 23:00，週一到週五
+    # UTC 15:00 = ?啁?? 23:00嚗曹??圈曹?
     - cron: "0 15 * * 1-5"
-  workflow_dispatch:   # 允許手動觸發（測試用）
-
+  workflow_dispatch:   # ?迂??閫貊嚗葫閰衣嚗?
 jobs:
   track:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # 允許 commit previous_holdings.json 回 repo
+      contents: write   # ?迂 commit previous_holdings.json ??repo
 
     steps:
       - name: Checkout repo
