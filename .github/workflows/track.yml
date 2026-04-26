@@ -1,15 +1,15 @@
-name: 00981A 瘥?餈質馱
+name: 00981A ETF Holdings Tracker
 
 on:
   schedule:
-    # UTC 15:00 = ?啁?? 23:00嚗曹??圈曹?
     - cron: "0 15 * * 1-5"
-  workflow_dispatch:   # ?迂??閫貊嚗葫閰衣嚗?
+  workflow_dispatch:
+
 jobs:
   track:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # ?迂 commit previous_holdings.json ??repo
+      contents: write
 
     steps:
       - name: Checkout repo
