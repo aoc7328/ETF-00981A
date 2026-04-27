@@ -173,8 +173,8 @@ def build_summary_blocks(diff: dict) -> list:
             blocks.append(_bullet([
                 _txt(f"{h['DetailName']} ({h['DetailCode']})", bold=True),
                 _txt("　"),
-                _txt(_shares_str(h["share_diff"]), color="green"),
-                _txt(f"　權重 {h['weight_diff']:+.2f}%", color="green"),
+                _txt(_shares_str(h["share_diff"]), color="red"),
+                _txt(f"　權重 {h['weight_diff']:+.2f}%", color="red"),
                 _txt(f"　→ {h['NavRate']}%"),
             ]))
 
@@ -185,8 +185,8 @@ def build_summary_blocks(diff: dict) -> list:
             blocks.append(_bullet([
                 _txt(f"{h['DetailName']} ({h['DetailCode']})", bold=True),
                 _txt("　"),
-                _txt(_shares_str(h["share_diff"]), color="red"),
-                _txt(f"　權重 {h['weight_diff']:+.2f}%", color="red"),
+                _txt(_shares_str(h["share_diff"]), color="green"),
+                _txt(f"　權重 {h['weight_diff']:+.2f}%", color="green"),
                 _txt(f"　→ {h['NavRate']}%"),
             ]))
 
