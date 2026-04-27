@@ -169,7 +169,7 @@ def build_summary_blocks(diff: dict) -> list:
     # 加碼
     if diff["increased"]:
         blocks.append(_h2("加碼"))
-        for h in sorted(diff["increased"], key=lambda x: x["weight_diff"], reverse=True):
+        for h in sorted(diff["increased"], key=lambda x: x["share_diff"], reverse=True):
             blocks.append(_bullet([
                 _txt(f"{h['DetailName']} ({h['DetailCode']})", bold=True),
                 _txt("　"),
@@ -181,7 +181,7 @@ def build_summary_blocks(diff: dict) -> list:
     # 減碼
     if diff["decreased"]:
         blocks.append(_h2("減碼"))
-        for h in sorted(diff["decreased"], key=lambda x: x["weight_diff"]):
+        for h in sorted(diff["decreased"], key=lambda x: x["share_diff"]):
             blocks.append(_bullet([
                 _txt(f"{h['DetailName']} ({h['DetailCode']})", bold=True),
                 _txt("　"),
