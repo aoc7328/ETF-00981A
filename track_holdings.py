@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -121,6 +122,10 @@ def _h2(text: str) -> dict:
     return {"object": "block", "type": "heading_2",
             "heading_2": {"rich_text": [_txt(text)]}}
 
+def _h3(text: str) -> dict:
+    return {"object": "block", "type": "heading_3",
+            "heading_3": {"rich_text": [_txt(text)]}}
+
 def _divider() -> dict:
     return {"object": "block", "type": "divider", "divider": {}}
 
@@ -209,28 +214,64 @@ def build_summary_blocks(diff: dict) -> list:
     return blocks
 
 
-def build_holdings_table(holdings: list) -> list:
-    """完整持股表（Notion table block）"""
+def fetch_industry_map() -> dict:
+    """從 TWSE 月營收 API 取得 {股票代號: 產業別} 對應表"""
+    try:
+        resp = requests.get(
+            "https://openapi.twse.com.tw/v1/opendata/t187ap05_L",
+            timeout=15
+        )
+        resp.raise_for_status()
+        return {item["公司代號"]: item["產業別"]
+                for item in resp.json() if item.get("產業別")}
+    except Exception as e:
+        print(f"⚠️  無法取得產業資料：{e}，改用無分類模式")
+        return {}
+
+
+def build_holdings_table(holdings: list, industry_map: dict = None) -> list:
+    """完整持股表，按產業分組（各產業一個 heading_3 + table）"""
     def row(cells):
         return {
             "object": "block", "type": "table_row",
             "table_row": {"cells": [[_txt(c)] for c in cells]},
         }
 
-    header = row(["代號", "名稱", "股數", "權重 %"])
-    rows   = [row([h["DetailCode"], h["DetailName"],
-                   f"{h['Share']:,}", str(h["NavRate"])])
-              for h in holdings]
-    return [
-        _h2("完整持股明細"),
-        {
+    def make_table(stocks):
+        header = row(["代號", "名稱", "股數", "權重 %"])
+        rows   = [row([h["DetailCode"], h["DetailName"],
+                       f"{h['Share']:,}", str(h["NavRate"])])
+                  for h in stocks]
+        return {
             "object": "block", "type": "table",
             "table": {
                 "table_width": 4, "has_column_header": True,
                 "has_row_header": False, "children": [header] + rows,
             },
-        },
-    ]
+        }
+
+    blocks = [_h2("完整持股明細")]
+
+    if industry_map:
+        # 依產業分組
+        groups = defaultdict(list)
+        for h in holdings:
+            industry = industry_map.get(h["DetailCode"], "其他")
+            groups[industry].append(h)
+        # 各產業依總權重由大到小排列
+        sorted_groups = sorted(
+            groups.items(),
+            key=lambda x: sum(h["NavRate"] for h in x[1]),
+            reverse=True
+        )
+        for industry, stocks in sorted_groups:
+            total_weight = sum(h["NavRate"] for h in stocks)
+            blocks.append(_h3(f"{industry}　{total_weight:.2f}%"))
+            blocks.append(make_table(stocks))
+    else:
+        blocks.append(make_table(holdings))
+
+    return blocks
 
 
 # ── 5. 呼叫 Notion API ───────────────────────────────────────────────────────
@@ -247,7 +288,8 @@ def _append_blocks(page_id: str, blocks: list):
 
 
 def create_notion_row(tran_date: str, nav: float, diff: dict,
-                      holdings: list, is_first_run: bool):
+                      holdings: list, is_first_run: bool,
+                      industry_map: dict = None):
     has_change = any(diff[k] for k in diff)
     status = "✅ 有異動" if has_change else "⏭️ 無新資料"
     title  = f"{tran_date} 持股快照"
@@ -283,8 +325,8 @@ def create_notion_row(tran_date: str, nav: float, diff: dict,
     # 寫入內頁：異動摘要
     _append_blocks(page_id, build_summary_blocks(diff))
 
-    # 寫入內頁：分隔線 + 完整持股表
-    _append_blocks(page_id, [_divider()] + build_holdings_table(holdings))
+    # 寫入內頁：分隔線 + 完整持股表（按產業分組）
+    _append_blocks(page_id, [_divider()] + build_holdings_table(holdings, industry_map))
 
     print("✅ 內頁詳細資訊寫入完成")
 
@@ -315,9 +357,13 @@ def main():
     print(f"📊 加碼 {len(diff['increased'])}　減碼 {len(diff['decreased'])}　"
           f"新進 {len(diff['added'])}　出清 {len(diff['removed'])}")
 
+    print("🏭 抓取產業分類...")
+    industry_map = fetch_industry_map()
+    print(f"✅ 取得 {len(industry_map)} 支股票產業資料")
+
     print("📝 寫入 Notion...")
     create_notion_row(today["tran_date"], today["nav"], diff,
-                      today["holdings"], is_first)
+                      today["holdings"], is_first, industry_map)
 
     save_current(today)
     print("🎉 完成！")
