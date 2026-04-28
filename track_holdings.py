@@ -215,17 +215,14 @@ def build_summary_blocks(diff: dict) -> list:
 
 
 def fetch_industry_map() -> dict:
-    """從 TWSE 月營收 API 取得 {股票代號: 產業別} 對應表"""
+    """從 sectors.json 讀取 {股票代號: 族群} 對應表"""
     try:
-        resp = requests.get(
-            "https://openapi.twse.com.tw/v1/opendata/t187ap05_L",
-            timeout=15
-        )
-        resp.raise_for_status()
-        return {item["公司代號"]: item["產業別"]
-                for item in resp.json() if item.get("產業別")}
+        sectors_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sectors.json")
+        with open(sectors_path, encoding="utf-8") as f:
+            data = json.load(f)
+        return {k: v for k, v in data.items() if not k.startswith("_")}
     except Exception as e:
-        print(f"⚠️  無法取得產業資料：{e}，改用無分類模式")
+        print(f"⚠️  無法讀取 sectors.json：{e}，改用無分類模式")
         return {}
 
 
@@ -357,9 +354,9 @@ def main():
     print(f"📊 加碼 {len(diff['increased'])}　減碼 {len(diff['decreased'])}　"
           f"新進 {len(diff['added'])}　出清 {len(diff['removed'])}")
 
-    print("🏭 抓取產業分類...")
+    print("🏭 讀取族群分類...")
     industry_map = fetch_industry_map()
-    print(f"✅ 取得 {len(industry_map)} 支股票產業資料")
+    print(f"✅ 讀取 {len(industry_map)} 支股票族群資料")
 
     print("📝 寫入 Notion...")
     create_notion_row(today["tran_date"], today["nav"], diff,
