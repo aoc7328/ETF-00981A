@@ -235,9 +235,9 @@ def build_holdings_table(holdings: list, industry_map: dict = None) -> list:
         }
 
     def make_table(stocks):
-        header = row(["代號", "名稱", "股數", "權重 %"])
+        header = row(["代號", "名稱", "張數", "權重 %"])
         rows   = [row([h["DetailCode"], h["DetailName"],
-                       f"{h['Share']:,}", str(h["NavRate"])])
+                       (f"{h['Share']//1000:,}" if h['Share']%1000==0 else f"{h['Share']/1000:,.3f}"), str(h["NavRate"])])
                   for h in stocks]
         return {
             "object": "block", "type": "table",
