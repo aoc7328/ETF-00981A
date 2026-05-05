@@ -309,12 +309,12 @@ def _append_blocks(page_id: str, blocks: list):
         r.raise_for_status()
 
 
-def create_notion_row(tran_date: str, nav: float, diff: dict,
+def create_notion_row(snapshot_date: str, nav: float, diff: dict,
                       holdings: list, is_first_run: bool,
                       industry_map: dict = None):
     has_change = any(diff[k] for k in diff)
     status = "✅ 有異動" if has_change else "⏭️ 無新資料"
-    title  = f"{tran_date} 持股快照"
+    title  = f"{snapshot_date} 持股快照"
     if is_first_run:
         title += "（首次建立）"
 
@@ -327,7 +327,7 @@ def create_notion_row(tran_date: str, nav: float, diff: dict,
             "icon":   {"type": "emoji", "emoji": "📊"},
             "properties": {
                 "快照日期":   {"title":  [{"text": {"content": title}}]},
-                "資料日期":   {"date":   {"start": tran_date}},
+                "資料日期":   {"date":   {"start": snapshot_date}},
                 "總持股檔數": {"number": len(holdings)},
                 "加碼":      {"number": len(diff["increased"])},
                 "減碼":      {"number": len(diff["decreased"])},
@@ -384,7 +384,8 @@ def main():
     print(f"✅ 讀取 {len(industry_map)} 支股票族群資料")
 
     print("📝 寫入 Notion...")
-    create_notion_row(today["tran_date"], today["nav"], diff,
+    today_date = datetime.now(TW).date().isoformat()
+    create_notion_row(today_date, today["nav"], diff,
                       today["holdings"], is_first, industry_map)
 
     save_current(today)
