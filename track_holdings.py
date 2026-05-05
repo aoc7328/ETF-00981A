@@ -1,5 +1,5 @@
 """
-00981A 主動統一台股增長 — 每日持股追蹤
+統一投信 ETF 系列 — 每日持股追蹤（多檔 ETF 共用，由環境變數選擇）
 執行邏輯：
   1. 抓 ezmoney 今日持股
   2. 跟 repo 的 previous_holdings.json 比對
@@ -19,9 +19,12 @@ import requests
 
 # ── 設定 ────────────────────────────────────────────────────────────────────
 NOTION_TOKEN       = os.environ["NOTION_TOKEN"]
-NOTION_DATABASE_ID = "1296db4b170b4f5ab201a52af867191c"
-EZMONEY_URL        = "https://www.ezmoney.com.tw/ETF/Fund/Info?FundCode=49YTW"
-PREV_FILE          = "previous_holdings.json"
+NOTION_DATABASE_ID = os.environ["NOTION_DATABASE_ID"]
+FUND_CODE          = os.environ.get("FUND_CODE", "49YTW")
+ETF_NAME           = os.environ.get("ETF_NAME", "00981A")
+EZMONEY_URL        = f"https://www.ezmoney.com.tw/ETF/Fund/Info?FundCode={FUND_CODE}"
+PREV_FILE          = f"previous_holdings_{ETF_NAME}.json"
+SECTORS_FILE       = f"sectors_{ETF_NAME}.json"
 
 TW = timezone(timedelta(hours=8))
 
@@ -215,14 +218,17 @@ def build_summary_blocks(diff: dict) -> list:
 
 
 def fetch_industry_map() -> dict:
-    """從 sectors.json 讀取 {股票代號: 族群} 對應表"""
+    """從 sectors_{ETF_NAME}.json 讀取 {股票代號: 族群} 對應表，找不到就無分類"""
     try:
-        sectors_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sectors.json")
+        sectors_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), SECTORS_FILE)
         with open(sectors_path, encoding="utf-8") as f:
             data = json.load(f)
         return {k: v for k, v in data.items() if not k.startswith("_")}
+    except FileNotFoundError:
+        print(f"ℹ️  {SECTORS_FILE} 不存在，採用無分類模式")
+        return {}
     except Exception as e:
-        print(f"⚠️  無法讀取 sectors.json：{e}，改用無分類模式")
+        print(f"⚠️  讀取 {SECTORS_FILE} 失敗：{e}，改用無分類模式")
         return {}
 
 
