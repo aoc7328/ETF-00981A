@@ -232,9 +232,9 @@ def fetch_industry_map() -> dict:
         return {}
 
 
-def _is_taiwan_stock(detail_name: str) -> bool:
-    """股名含中文字 → 臺股；全英文 → 非臺股"""
-    return any('\u4e00' <= c <= '\u9fff' for c in detail_name)
+def _is_taiwan_stock(detail_code: str) -> bool:
+    """代號純數字 → 臺股；含英文字母 → 非臺股"""
+    return detail_code.isdigit()
 
 
 def build_holdings_table(holdings: list, industry_map: dict = None) -> list:
@@ -284,7 +284,7 @@ def build_holdings_table(holdings: list, industry_map: dict = None) -> list:
         # 模式二：臺股 / 非臺股（依股名語言）
         tw, non_tw = [], []
         for h in holdings:
-            (tw if _is_taiwan_stock(h["DetailName"]) else non_tw).append(h)
+            (tw if _is_taiwan_stock(h["DetailCode"]) else non_tw).append(h)
         for label, stocks in [("臺股", tw), ("非臺股", non_tw)]:
             if not stocks:
                 continue
