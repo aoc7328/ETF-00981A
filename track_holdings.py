@@ -232,8 +232,17 @@ def fetch_industry_map() -> dict:
         return {}
 
 
+def _is_taiwan_stock(detail_name: str) -> bool:
+    """股名含中文字 → 臺股；全英文 → 非臺股"""
+    return any('\u4e00' <= c <= '\u9fff' for c in detail_name)
+
+
 def build_holdings_table(holdings: list, industry_map: dict = None) -> list:
-    """完整持股表，按產業分組（各產業一個 heading_3 + table）"""
+    """完整持股表：
+    - 若 industry_map 有資料：按細分族群分組（00981A 模式）
+    - 若 industry_map 為空：依股名語言分「臺股 / 非臺股」兩組（00988A 模式）
+    每組內按權重由高到低排序。
+    """
     def row(cells):
         return {
             "object": "block", "type": "table_row",
@@ -256,23 +265,33 @@ def build_holdings_table(holdings: list, industry_map: dict = None) -> list:
     blocks = [_h2("完整持股明細")]
 
     if industry_map:
-        # 依產業分組
+        # 模式一：細分族群（依 sectors_<ETF>.json）
         groups = defaultdict(list)
         for h in holdings:
             industry = industry_map.get(h["DetailCode"], "其他")
             groups[industry].append(h)
-        # 各產業依總權重由大到小排列
         sorted_groups = sorted(
             groups.items(),
             key=lambda x: sum(h["NavRate"] for h in x[1]),
             reverse=True
         )
         for industry, stocks in sorted_groups:
-            total_weight = sum(h["NavRate"] for h in stocks)
+            stocks_sorted = sorted(stocks, key=lambda x: x["NavRate"], reverse=True)
+            total_weight = sum(h["NavRate"] for h in stocks_sorted)
             blocks.append(_h3(f"{industry}　{total_weight:.2f}%"))
-            blocks.append(make_table(stocks))
+            blocks.append(make_table(stocks_sorted))
     else:
-        blocks.append(make_table(holdings))
+        # 模式二：臺股 / 非臺股（依股名語言）
+        tw, non_tw = [], []
+        for h in holdings:
+            (tw if _is_taiwan_stock(h["DetailName"]) else non_tw).append(h)
+        for label, stocks in [("臺股", tw), ("非臺股", non_tw)]:
+            if not stocks:
+                continue
+            stocks_sorted = sorted(stocks, key=lambda x: x["NavRate"], reverse=True)
+            total_weight = sum(h["NavRate"] for h in stocks_sorted)
+            blocks.append(_h3(f"{label}　{total_weight:.2f}%"))
+            blocks.append(make_table(stocks_sorted))
 
     return blocks
 
