@@ -1,4 +1,4 @@
-name: 00981A ETF Holdings Tracker
+name: ETF Holdings Tracker
 
 on:
   schedule:
@@ -23,15 +23,26 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run holdings tracker
+      - name: Track 00981A
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: 1296db4b170b4f5ab201a52af867191c
+          FUND_CODE: 49YTW
+          ETF_NAME: 00981A
         run: python track_holdings.py
 
-      - name: Commit previous_holdings.json
+      - name: Track 00988A
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: 35712f89d97c80a2b74cddd7e1baf99d
+          FUND_CODE: 61YTW
+          ETF_NAME: 00988A
+        run: python track_holdings.py
+
+      - name: Commit snapshot files
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add previous_holdings.json
+          git add previous_holdings_*.json
           git diff --cached --quiet || git commit -m "chore: update holdings snapshot $(date +'%Y-%m-%d')"
           git push
