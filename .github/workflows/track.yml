@@ -24,6 +24,7 @@ jobs:
         run: pip install requests
 
       - name: Track 00981A
+        continue-on-error: true
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: 1296db4b170b4f5ab201a52af867191c
@@ -32,6 +33,7 @@ jobs:
         run: python track_holdings.py
 
       - name: Track 00988A
+        continue-on-error: true
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: 35712f89d97c80a2b74cddd7e1baf99d
