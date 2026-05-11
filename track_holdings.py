@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -44,8 +45,20 @@ def fetch_holdings() -> dict:
             "Chrome/124.0.0.0 Safari/537.36"
         )
     }
-    resp = requests.get(EZMONEY_URL, headers=headers, timeout=30)
-    resp.raise_for_status()
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            resp = requests.get(EZMONEY_URL, headers=headers, timeout=30)
+            resp.raise_for_status()
+            break
+        except requests.exceptions.RequestException as e:
+            last_err = e
+            print(f"⚠️  ezmoney 抓取失敗（第 {attempt}/3 次）：{e}")
+            if attempt < 3:
+                print("　　 5 秒後重試…")
+                time.sleep(5)
+            else:
+                raise RuntimeError(f"連續 3 次抓取 ezmoney 失敗") from last_err
 
     m = re.search(r'id="DataAsset"\s+data-content="([^"]+)"', resp.text)
     if not m:
